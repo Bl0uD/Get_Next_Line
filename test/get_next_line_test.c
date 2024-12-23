@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   get_next_line.c                                    :+:      :+:    :+:   */
+/*   get_next_line_test.c                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: jdupuis <jdupuis@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/02 20:18:21 by jdupuis           #+#    #+#             */
-/*   Updated: 2024/12/22 23:40:16 by jdupuis          ###   ########.fr       */
+/*   Updated: 2024/12/22 23:34:53 by jdupuis          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,62 +47,78 @@ char	*ft_join(char *original, const char *addition, size_t r)
 	return (new_str);
 }
 
-char	*get_next_line(int fd)
+char	*initialize_line(void)
 {
-	char			*line;
-	static char		buf[BUFFER_SIZE];
-	size_t			r;
-	int				nline_idx;
+	char	*line;
 
 	line = malloc(BUFFER_SIZE * sizeof(char) + 1);
 	if (!line)
 		return (NULL);
 	line[0] = '\0';
-	if (buf[0] != '\0')
+	return (line);
+}
+
+char	*process_existing_buffer(char *line, char *buf)
+{
+	int	newline_idx;
+
+	newline_idx = find_newline(buf);
+	if (newline_idx != -1)
 	{
-		nline_idx = find_newline(buf);
-		if (nline_idx != -1)
-		{
-			ft_memcpy(line, buf, nline_idx + 1);
-			line[nline_idx + 1] = '\0';
-			ft_memcpy(buf, buf + nline_idx + 1, BUFFER_SIZE - nline_idx - 1);
-			return (buf[BUFFER_SIZE - nline_idx - 1] = '\0', line);
-		}
-		else
-			line = ft_join(line, buf, BUFFER_SIZE);
+		ft_memcpy(line, buf, newline_idx + 1);
+		line[newline_idx + 1] = '\0';
+		ft_memcpy(buf, buf + newline_idx + 1, BUFFER_SIZE - newline_idx - 1);
+		buf[BUFFER_SIZE - newline_idx - 1] = '\0';
+		return (line);
 	}
+	else
+		return (ft_join(line, buf, BUFFER_SIZE));
+}
+
+char	*read_and_process(int fd, char *line, char *buf)
+{
+	size_t	r;
+	int		newline_idx;
+
 	r = read(fd, buf, BUFFER_SIZE);
-	nline_idx = find_newline(buf);
 	if (r <= 0 && buf[0] == 0)
 		return (free(line), NULL);
 	buf[r] = '\0';
-	nline_idx = find_newline(buf);
-	if (nline_idx != -1)
+	newline_idx = find_newline(buf);
+	if (newline_idx != -1)
 	{
-		ft_memcpy(line + ft_strlen(line), buf, nline_idx +1);
-		ft_memcpy(buf, buf + nline_idx + 1, r - nline_idx - 1);
-		return (buf[r - nline_idx - 1] = '\0', line);
+		ft_memcpy(line + ft_strlen(line), buf, newline_idx + 1);
+		ft_memcpy(buf, buf + newline_idx + 1, r - newline_idx - 1);
+		buf[r - newline_idx - 1] = '\0';
+		return (line);
 	}
-	while (nline_idx == -1 && r == BUFFER_SIZE)
+	while (r == BUFFER_SIZE)
 	{
 		line = ft_join(line, buf, r);
 		if (!line)
 			return (NULL);
 		r = read(fd, buf, BUFFER_SIZE);
 		buf[r] = '\0';
-		nline_idx = find_newline(buf);
-		if (nline_idx != -1)
-			line = ft_join(line, buf, nline_idx + 1);
+		newline_idx = find_newline(buf);
+		if (newline_idx != -1)
+			return (ft_join(line, buf, newline_idx + 1));
 	}
-	if (r == 0 && nline_idx == -1)
+	return (ft_join(line, buf, r));
+}
+
+char	*get_next_line(int fd)
+{
+	static char	buf[BUFFER_SIZE];
+	char		*line;
+
+	line = initialize_line();
+	if (!line)
+		return (NULL);
+	if (buf[0] != '\0')
 	{
-		line = ft_join(line, buf, r);
-		if (!line)
-			return (NULL);
-		return (line);
+		line = process_existing_buffer(line, buf);
+		if (line && find_newline(buf) != -1)
+			return (line);
 	}
-	if (r == 0 && buf[0] != 0)
-		return (free(line), NULL);
-	ft_memcpy(buf, buf + nline_idx + 1, r - nline_idx - 1);
-	return (buf[r - nline_idx - 1] = '\0', line);
+	return (read_and_process(fd, line, buf));
 }
