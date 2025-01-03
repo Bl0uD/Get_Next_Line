@@ -6,11 +6,21 @@
 /*   By: jdupuis <jdupuis@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/22 23:51:55 by jdupuis           #+#    #+#             */
-/*   Updated: 2024/12/22 23:51:58 by jdupuis          ###   ########.fr       */
+/*   Updated: 2025/01/03 19:01:17 by jdupuis          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../get_next_line.h"
+
+size_t	ft_strlen(const char *str)
+{
+	size_t	i;
+
+	i = 0;
+	while (str[i] != '\0')
+		i++;
+	return (i);
+}
 
 int	main(int argc, char *argv[])
 {

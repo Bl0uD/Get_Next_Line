@@ -6,34 +6,30 @@
 /*   By: jdupuis <jdupuis@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/02 21:26:30 by jdupuis           #+#    #+#             */
-/*   Updated: 2024/12/25 22:16:24 by jdupuis          ###   ########.fr       */
+/*   Updated: 2025/01/03 18:56:47 by jdupuis          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-size_t	ft_strlen(const char *str)
+char	*ft_substr(char const *s, unsigned int start, size_t len)
 {
-	size_t	i;
+	int		i;
+	char	*str;
 
+	if (!s)
+		return (NULL);
+	str = (char *)malloc(len + 1);
+	if (!str)
+		return (NULL);
 	i = 0;
-	while (str[i] != '\0')
-		i++;
-	return (i);
-}
-
-int	find_newline(char *s, size_t buf_size)
-{
-	size_t	i;
-
-	i = 0;
-	while (i < buf_size)
+	while (i < (int)len)
 	{
-		if (s[i] == '\n')
-			return (i);
+		str[i] = s[start + i];
 		i++;
 	}
-	return (-1);
+	str[i] = '\0';
+	return (str);
 }
 
 void	*ft_memcpy(void *dest, const void *src, size_t n)
@@ -55,28 +51,30 @@ void	*ft_memcpy(void *dest, const void *src, size_t n)
 	return (pdest);
 }
 
-void	*ft_join(void *ptr, size_t ptr_size, void *ptr2, size_t ptr2_size)
+void	*ft_realloc(void *ptr, size_t size, size_t new_size)
 {
-	void	*new_ptr;
+	size_t		i;
+	char		*new;
 
-	new_ptr = ft_realloc(ptr, ptr_size, ptr2_size);
-	if (!new_ptr)
+	new = malloc(new_size + 1);
+	if (!new)
 		return (NULL);
-	ft_memcpy(new_ptr + ptr_size, ptr2, ptr2_size);
-	return (new_ptr);
-}
-
-void	*ft_realloc(void *ptr, size_t old_size, size_t new_size)
-{
-	void	*new_ptr;
-
-	new_ptr = malloc(old_size + new_size);
-	if (!new_ptr)
-		return (NULL);
+	i = 0;
+	while (i < new_size + 1)
+	{
+		((char *)new)[i] = 0;
+		i++;
+	}
+	i = 0;
 	if (ptr)
 	{
-		ft_memcpy(new_ptr, ptr, old_size);
-		free (ptr);
+		while (i < size)
+		{
+			((char *)new)[i] = ((char *)ptr)[i];
+			i++;
+		}
+		free(ptr);
 	}
-	return (new_ptr);
+	((char *)new)[new_size] = '\0';
+	return (new);
 }
