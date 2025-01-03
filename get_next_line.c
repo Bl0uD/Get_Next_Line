@@ -6,103 +6,102 @@
 /*   By: jdupuis <jdupuis@student.42perpignan.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/12/02 20:18:21 by jdupuis           #+#    #+#             */
-/*   Updated: 2024/12/22 23:40:16 by jdupuis          ###   ########.fr       */
+/*   Updated: 2024/12/26 16:19:38 by jdupuis          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-void	*ft_memcpy(void *dest, const void *src, size_t n)
+void	ft_bzero(void *s, size_t n)
 {
-	size_t	i;
-	char	*psrc;
-	char	*pdest;
+	unsigned char	*ptr;
 
-	i = 0;
-	psrc = (char *)src;
-	pdest = (char *)dest;
-	if (psrc == NULL && pdest == NULL)
-		return (dest);
-	while (i < n)
-	{
-		pdest[i] = psrc[i];
-		i++;
-	}
-	return (pdest);
-}
-
-char	*ft_join(char *original, const char *addition, size_t r)
-{
-	size_t	original_len;
-	char	*new_str;
-
-	original_len = ft_strlen(original);
-	new_str = malloc(original_len + r + 1);
-	if (!new_str)
-		return (NULL);
-	ft_memcpy(new_str, original, original_len);
-	ft_memcpy(new_str + original_len, addition, r);
-	new_str[original_len + r] = '\0';
-	free(original);
-	return (new_str);
+	ptr = (unsigned char *)s;
+	while (n--)
+		*ptr++ = 0;
 }
 
 char	*get_next_line(int fd)
 {
 	char			*line;
-	static char		buf[BUFFER_SIZE];
-	size_t			r;
+	static char		buf[BUFFER_SIZE] = {0};
+	static size_t	buf_size = 0;
+	ssize_t			r;
 	int				nline_idx;
+	int				line_size;
 
-	line = malloc(BUFFER_SIZE * sizeof(char) + 1);
-	if (!line)
-		return (NULL);
-	line[0] = '\0';
-	if (buf[0] != '\0')
-	{
-		nline_idx = find_newline(buf);
-		if (nline_idx != -1)
-		{
-			ft_memcpy(line, buf, nline_idx + 1);
-			line[nline_idx + 1] = '\0';
-			ft_memcpy(buf, buf + nline_idx + 1, BUFFER_SIZE - nline_idx - 1);
-			return (buf[BUFFER_SIZE - nline_idx - 1] = '\0', line);
-		}
-		else
-			line = ft_join(line, buf, BUFFER_SIZE);
-	}
-	r = read(fd, buf, BUFFER_SIZE);
-	nline_idx = find_newline(buf);
-	if (r <= 0 && buf[0] == 0)
-		return (free(line), NULL);
-	buf[r] = '\0';
-	nline_idx = find_newline(buf);
+	nline_idx = find_newline(buf, buf_size);
 	if (nline_idx != -1)
 	{
-		ft_memcpy(line + ft_strlen(line), buf, nline_idx +1);
-		ft_memcpy(buf, buf + nline_idx + 1, r - nline_idx - 1);
-		return (buf[r - nline_idx - 1] = '\0', line);
-	}
-	while (nline_idx == -1 && r == BUFFER_SIZE)
-	{
-		line = ft_join(line, buf, r);
-		if (!line)
+		line = malloc(sizeof(char) * (nline_idx + 2));
+		if (line == NULL)
 			return (NULL);
-		r = read(fd, buf, BUFFER_SIZE);
-		buf[r] = '\0';
-		nline_idx = find_newline(buf);
-		if (nline_idx != -1)
-			line = ft_join(line, buf, nline_idx + 1);
-	}
-	if (r == 0 && nline_idx == -1)
-	{
-		line = ft_join(line, buf, r);
-		if (!line)
-			return (NULL);
+		ft_memcpy(line, buf, nline_idx + 1);
+		ft_memcpy(buf, buf + nline_idx + 1, buf_size - nline_idx - 1);
+		ft_bzero(buf + buf_size - nline_idx - 1, BUFFER_SIZE - buf_size + 1);
+		buf_size = buf_size - nline_idx - 1;
+		line[nline_idx + 1] = '\0';
 		return (line);
 	}
-	if (r == 0 && buf[0] != 0)
-		return (free(line), NULL);
-	ft_memcpy(buf, buf + nline_idx + 1, r - nline_idx - 1);
-	return (buf[r - nline_idx - 1] = '\0', line);
+	line = malloc(sizeof(char) * (buf_size));
+	if (buf_size != 0 && line == NULL)
+		return (NULL);
+	ft_memcpy(line, buf, buf_size);
+	line_size = buf_size;
+	do
+	{
+		r = read(fd, buf, BUFFER_SIZE);
+		if (r == -1)
+		{
+			free (line);
+			return (NULL);
+		}
+		buf_size = r;
+		nline_idx = find_newline(buf, buf_size);
+		if (nline_idx != -1 && buf_size == BUFFER_SIZE)
+		{
+			line = ft_join(line, line_size, buf, nline_idx + 1);
+			if (!line)
+				return (NULL);
+			line_size += nline_idx + 1;
+			ft_memcpy(buf, buf + nline_idx + 1, BUFFER_SIZE - nline_idx - 1);
+			ft_bzero(buf + (BUFFER_SIZE - nline_idx - 1), buf_size - nline_idx);
+			buf_size = BUFFER_SIZE - nline_idx - 1;
+			line[line_size] = '\0';
+			return (line);
+		}
+		else if (nline_idx != -1 && buf_size > 0)
+		{
+			line = ft_join(line, line_size, buf, nline_idx + 1);
+			if (!line)
+				return (NULL);
+			line_size += nline_idx + 1;
+			ft_memcpy(buf, buf + nline_idx + 1, buf_size - nline_idx - 1);
+			ft_bzero(buf + (buf_size - nline_idx - 1), nline_idx + 1);
+			buf_size -= nline_idx - 1;
+			line[line_size] = '\0';
+			return (line);
+		}
+		else if (buf_size != 0 && buf_size != BUFFER_SIZE && nline_idx == -1)
+		{
+			line = ft_join(line, line_size, buf, buf_size);
+			if (!line)
+				return (NULL);
+			line[buf_size + line_size] = '\0';
+			buf_size = 0;
+			return (line);
+		}
+		else if (buf_size == 0 && line[0] == 0)
+		{
+			free (line);
+			return (NULL);
+		}
+		line = ft_join(line, line_size, buf, buf_size);
+		line_size += buf_size;
+		if (!line)
+			return (NULL);
+	}
+	while (nline_idx == -1 && buf_size != 0);
+	line[line_size] = '\0';
+	return (line);
 }
