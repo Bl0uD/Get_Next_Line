@@ -9,6 +9,10 @@ violet=$(tput bold; tput setaf 12)
 reset=$(tput sgr 0)
 test_size=(1 10 42 9999 10000000)
 
+if [ ! -d "outputs" ]; then
+	mkdir outputs
+fi
+
 for test_size in "${test_size[@]}"; do
 	echo -e "$green2""\nRunning tests with test_size = ""$jaune""$test_size\n""$reset"
 	
@@ -31,3 +35,8 @@ for test_size in "${test_size[@]}"; do
 	done
 	rm test_gnl
 done
+
+if [ -z "$(ls -A outputs)" ]; then
+	echo -e "$green2""\nALL TESTS PASSED !! CONGRATS !!\n" 
+    rmdir outputs
+fi
